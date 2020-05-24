@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -35,7 +36,7 @@ func main() {
 			close(mirrorchan)
 		}()
 
-		log.Fatal("Found " + string(len(mirrors)) + " mirrors.")
+		log.Fatal("Found " + strconv.Itoa(len(mirrors)) + " mirrors.")
 		var wg sync.WaitGroup
 		wg.Add(len(mirrors))
 
