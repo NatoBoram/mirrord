@@ -83,7 +83,7 @@ func (m *Mirror) key() error {
 		return nil
 	}
 
-	cmd := exec.Command("ipfs", "key", "gen", "--type=ed25519", m.Name)
+	cmd := exec.Command("ipfs", "key", "gen", m.Name)
 
 	// Stream errors to the console
 	cmd.Stderr = os.Stderr
