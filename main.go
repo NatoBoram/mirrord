@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -24,7 +23,7 @@ func main() {
 
 		// Exit if there's no mirrors
 		if len(mirrors) == 0 {
-			log.Fatal("No mirrors were configured.")
+			log.Fatalln("No mirrors were configured.")
 		}
 
 		// Create queue
@@ -36,7 +35,6 @@ func main() {
 			close(mirrorchan)
 		}()
 
-		log.Fatal("Found " + strconv.Itoa(len(mirrors)) + " mirrors.")
 		var wg sync.WaitGroup
 		wg.Add(len(mirrors))
 
@@ -48,6 +46,8 @@ func main() {
 					if err != nil {
 						fmt.Println(err.Error())
 					}
+
+					wg.Done()
 				}
 			}()
 		}

@@ -8,8 +8,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -55,7 +55,7 @@ type Mirror struct {
 func (m *Mirror) update() error {
 	cmd := exec.Command(m.Update)
 
-	// Stream the output to the console
+	// Stream outputs to the console
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -65,6 +65,10 @@ func (m *Mirror) update() error {
 
 func (m *Mirror) ipfs() error {
 	cmd := exec.Command("ipfs", "add", "--recursive", "--hidden", "--quieter", "--wrap-with-directory", "--chunker=rabin", "--nocopy", "--fscache", "--cid-version=1", m.Path)
+
+	// Stream errors to the console
+	cmd.Stderr = os.Stderr
+
 	out, err := cmd.Output()
 	if err != nil {
 		return err
@@ -80,6 +84,10 @@ func (m *Mirror) key() error {
 	}
 
 	cmd := exec.Command("ipfs", "key", "gen", "--type=ed25519", m.Name)
+
+	// Stream errors to the console
+	cmd.Stderr = os.Stderr
+
 	out, err := cmd.Output()
 	if err != nil {
 		return err
@@ -91,6 +99,10 @@ func (m *Mirror) key() error {
 
 func (m *Mirror) ipns() error {
 	cmd := exec.Command("ipfs", "name", "publish", "--key="+m.Key, "--quieter", m.IPFS)
+
+	// Stream errors to the console
+	cmd.Stderr = os.Stderr
+
 	out, err := cmd.Output()
 	if err != nil {
 		return err
@@ -110,13 +122,13 @@ func (m *Mirror) save() error {
 }
 
 func (m *Mirror) cycle() (err error) {
-	log.Println("Updating...")
+	fmt.Println("Updating...")
 	err = m.update()
 	if err != nil {
 		return
 	}
 
-	log.Println("Adding to IPFS...")
+	fmt.Println("Adding to IPFS...")
 	err = m.ipfs()
 	if err != nil {
 		return
@@ -127,7 +139,7 @@ func (m *Mirror) cycle() (err error) {
 		return
 	}
 
-	log.Println("Publishing on IPNS...")
+	fmt.Println("Publishing on IPNS...")
 	err = m.ipns()
 	return
 }
