@@ -35,6 +35,7 @@ func main() {
 			close(mirrorchan)
 		}()
 
+		log.Fatal("Found " + string(len(mirrors)) + " mirrors.")
 		var wg sync.WaitGroup
 		wg.Add(len(mirrors))
 

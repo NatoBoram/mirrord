@@ -9,6 +9,7 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -109,11 +110,13 @@ func (m *Mirror) save() error {
 }
 
 func (m *Mirror) cycle() (err error) {
+	log.Println("Updating...")
 	err = m.update()
 	if err != nil {
 		return
 	}
 
+	log.Println("Adding to IPFS...")
 	err = m.ipfs()
 	if err != nil {
 		return
@@ -124,6 +127,7 @@ func (m *Mirror) cycle() (err error) {
 		return
 	}
 
+	log.Println("Publishing on IPNS...")
 	err = m.ipns()
 	return
 }
