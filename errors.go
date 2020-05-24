@@ -2,6 +2,7 @@ package main
 
 import "errors"
 
+// Errors
 var (
-	ErrNotJSON = errors.New("Not a JSON file.")
+	ErrNotJSON = errors.New("not a JSON file")
 )

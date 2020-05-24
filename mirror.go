@@ -8,12 +8,14 @@ package main
 
 import "encoding/json"
 
+// UnmarshalMirror unmarshals a mirror configuration.
 func UnmarshalMirror(data []byte) (Mirror, error) {
 	var r Mirror
 	err := json.Unmarshal(data, &r)
 	return r, err
 }
 
+// Marshal turns a mirror configuration into a JSON file.
 func (r *Mirror) Marshal() ([]byte, error) {
 	return json.Marshal(r)
 }

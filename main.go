@@ -10,10 +10,15 @@ import (
 
 func main() {
 
-	_, err := loadMirrors()
+	mirrors, err := loadMirrors()
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
+	}
+
+	if len(mirrors) == 0 {
+		fmt.Println("No mirrors were configured.")
+		os.Exit(0)
 	}
 }
 
