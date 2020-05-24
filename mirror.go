@@ -6,22 +6,31 @@
 
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"strings"
+)
 
 // UnmarshalMirror unmarshals a mirror configuration.
 func UnmarshalMirror(data []byte) (Mirror, error) {
-	var r Mirror
-	err := json.Unmarshal(data, &r)
-	return r, err
+	var m Mirror
+	err := json.Unmarshal(data, &m)
+	return m, err
 }
 
 // Marshal turns a mirror configuration into a JSON file.
-func (r *Mirror) Marshal() ([]byte, error) {
-	return json.Marshal(r)
+func (m *Mirror) Marshal() ([]byte, error) {
+	return json.Marshal(m)
 }
 
 // Mirror represents a single mirror that mirrord will manage.
 type Mirror struct {
+
+	// Name is the name of this mirror.
+	Name string `json:"name"`
 
 	// Update is a path to a script that will update the mirror's files.
 	Update string `json:"update"`
@@ -37,4 +46,84 @@ type Mirror struct {
 
 	// IPNS is the IPNS key of the mirror.
 	IPNS string `json:"ipns"`
+
+	path string
+	info os.FileInfo
+}
+
+func (m *Mirror) update() error {
+	cmd := exec.Command(m.Update)
+
+	// Stream the output to the console
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Run the command
+	return cmd.Run()
+}
+
+func (m *Mirror) ipfs() error {
+	cmd := exec.Command("ipfs", "add", "--recursive", "--hidden", "--quieter", "--wrap-with-directory", "--chunker=rabin", "--nocopy", "--fscache", "--cid-version=1", m.Path)
+	out, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	m.IPFS = strings.TrimSpace(string(out))
+	return m.save()
+}
+
+func (m *Mirror) key() error {
+	if m.Key != "" {
+		return nil
+	}
+
+	cmd := exec.Command("ipfs", "key", "gen", "--type=ed25519", m.Name)
+	out, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	m.Key = strings.TrimSpace(string(out))
+	return m.save()
+}
+
+func (m *Mirror) ipns() error {
+	cmd := exec.Command("ipfs", "name", "publish", "--key="+m.Key, "--quieter", m.IPFS)
+	out, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	m.IPNS = strings.TrimSpace(string(out))
+	return m.save()
+}
+
+func (m *Mirror) save() error {
+	bytes, err := m.Marshal()
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(m.path, bytes, osPrivateFile)
+}
+
+func (m *Mirror) cycle() (err error) {
+	err = m.update()
+	if err != nil {
+		return
+	}
+
+	err = m.ipfs()
+	if err != nil {
+		return
+	}
+
+	err = m.key()
+	if err != nil {
+		return
+	}
+
+	err = m.ipns()
+	return
 }

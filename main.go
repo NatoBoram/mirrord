@@ -3,22 +3,54 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 )
 
 func main() {
 
-	mirrors, err := loadMirrors()
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
+	for {
 
-	if len(mirrors) == 0 {
-		fmt.Println("No mirrors were configured.")
-		os.Exit(0)
+		// Load mirrors
+		mirrors, err := loadMirrors()
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		// Exit if there's no mirrors
+		if len(mirrors) == 0 {
+			log.Fatal("No mirrors were configured.")
+		}
+
+		// Create queue
+		mirrorchan := make(chan *Mirror, runtime.NumCPU())
+		go func() {
+			for _, mirror := range mirrors {
+				mirrorchan <- &mirror
+			}
+			close(mirrorchan)
+		}()
+
+		var wg sync.WaitGroup
+		wg.Add(len(mirrors))
+
+		// Mirror asynchronously
+		for c := 1; c <= runtime.NumCPU(); c++ {
+			go func() {
+				for mirror := range mirrorchan {
+					err := mirror.cycle()
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+				}
+			}()
+		}
+
+		wg.Wait()
 	}
 }
 
@@ -58,6 +90,9 @@ func loadMirrors() ([]Mirror, error) {
 		if err != nil {
 			return err
 		}
+
+		mirror.path = path
+		mirror.info = info
 
 		mirrors = append(mirrors, mirror)
 		return nil
