@@ -1,0 +1,45 @@
+image: golang:1.14
+
+before_script:
+    - go get -u -v gitlab.com/NatoBoram/mirrord
+    - go clean
+
+build:
+    stage: build
+    script:
+        - go build -o build/mirrord
+    artifacts:
+        paths:
+            - build/mirrord
+
+cross-compile:
+    stage: build
+    script:
+        - ./scripts/cross-compile.sh
+    artifacts:
+        paths:
+            - build/mirrord-darwin-386
+            - build/mirrord-darwin-amd64
+            - build/mirrord-darwin-arm
+            - build/mirrord-darwin-arm64
+            - build/mirrord-linux-386
+            - build/mirrord-linux-amd64
+            - build/mirrord-linux-arm
+            - build/mirrord-linux-arm64
+            - build/mirrord-windows-386.exe
+            - build/mirrord-windows-amd64.exe
+            - build/mirrord-windows-arm.exe
+    only:
+        - master
+        - develop
+
+lint:
+    stage: test
+    script:
+        - go get -u golang.org/x/lint/golint
+        - golint -set_exit_status ./...
+
+test:
+    stage: test
+    script:
+        - go test ./...
