@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -52,6 +53,7 @@ func main() {
 			}()
 		}
 
+		time.Sleep(4 * time.Hour)
 		wg.Wait()
 	}
 }
