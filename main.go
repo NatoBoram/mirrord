@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"runtime"
 	"sync"
 	"time"
@@ -60,6 +62,11 @@ func main() {
 
 		time.Sleep(4 * time.Hour)
 		wg.Wait()
+
+		cmd := exec.Command("ipfs", "repo", "gc", "--stream-errors")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Run()
 
 		err = config.runAfterScript()
 		if err != nil {
