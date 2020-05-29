@@ -2,22 +2,22 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 )
 
 func main() {
 
+	config, err := readConfig()
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+
 	for {
 
-		// Load mirrors
-		mirrors, err := loadMirrors()
+		mirrors, err := readMirrors()
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
@@ -25,6 +25,11 @@ func main() {
 		// Exit if there's no mirrors
 		if len(mirrors) == 0 {
 			log.Fatalln("No mirrors were configured.")
+		}
+
+		err = config.runBeforeScript()
+		if err != nil {
+			log.Fatalln(err.Error())
 		}
 
 		// Create queue
@@ -55,52 +60,10 @@ func main() {
 
 		time.Sleep(4 * time.Hour)
 		wg.Wait()
-	}
-}
 
-func loadMirrors() ([]Mirror, error) {
-
-	// Get user config dir
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return nil, err
-	}
-
-	mirrorConfigDir := configDir + string(os.PathSeparator) + name + string(os.PathSeparator) + "mirrors"
-
-	// Create `mirror` folder
-	err = os.MkdirAll(mirrorConfigDir, osPrivateDirectory)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get all mirror configuration files
-	var mirrors []Mirror
-	err = filepath.Walk(mirrorConfigDir, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
-		} else if !strings.HasSuffix(info.Name(), ".json") {
-			return ErrNotJSON
-		}
-
-		// Read mirror configuration file
-		bytes, err := ioutil.ReadFile(path)
+		err = config.runAfterScript()
 		if err != nil {
-			return err
+			log.Fatalln(err.Error())
 		}
-
-		// Bytes->JSON
-		mirror, err := UnmarshalMirror(bytes)
-		if err != nil {
-			return err
-		}
-
-		mirror.path = path
-		mirror.info = info
-
-		mirrors = append(mirrors, mirror)
-		return nil
-	})
-
-	return mirrors, err
+	}
 }
