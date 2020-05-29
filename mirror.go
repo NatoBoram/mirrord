@@ -68,7 +68,10 @@ func (m *Mirror) ipfs() error {
 		return err
 	}
 
-	m.IPFS = strings.TrimSpace(string(out))
+	ipfs := strings.TrimSpace(string(out))
+	exec.Command("ipfs", "pin", "rm", ipfs).Run()
+
+	m.IPFS = ipfs
 	return m.save()
 }
 
