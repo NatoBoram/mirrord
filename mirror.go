@@ -48,19 +48,13 @@ type Mirror struct {
 
 func (m *Mirror) update() error {
 	cmd := exec.Command(m.Update)
-
-	// Stream outputs to the console
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
-	// Run the command
 	return cmd.Run()
 }
 
 func (m *Mirror) ipfs() error {
 	cmd := exec.Command("ipfs", "add", "--recursive", "--hidden", "--quieter", "--wrap-with-directory", "--chunker=rabin", "--fscache", "--cid-version=1", m.Path)
-
-	// Stream errors to the console
 	cmd.Stderr = os.Stderr
 
 	out, err := cmd.Output()
@@ -68,10 +62,12 @@ func (m *Mirror) ipfs() error {
 		return err
 	}
 
-	ipfs := strings.TrimSpace(string(out))
-	exec.Command("ipfs", "pin", "rm", ipfs).Run()
+	cmd = exec.Command("ipfs", "pin", "rm", m.IPFS)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
 
-	m.IPFS = ipfs
+	m.IPFS = strings.TrimSpace(string(out))
 	return m.save()
 }
 
@@ -81,8 +77,6 @@ func (m *Mirror) key() error {
 	}
 
 	cmd := exec.Command("ipfs", "key", "gen", m.Name)
-
-	// Stream errors to the console
 	cmd.Stderr = os.Stderr
 
 	out, err := cmd.Output()
@@ -96,8 +90,6 @@ func (m *Mirror) key() error {
 
 func (m *Mirror) ipns() error {
 	cmd := exec.Command("ipfs", "name", "publish", "--key="+m.Key, "--quieter", m.IPFS)
-
-	// Stream errors to the console
 	cmd.Stderr = os.Stderr
 
 	out, err := cmd.Output()
