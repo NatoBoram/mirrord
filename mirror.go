@@ -64,7 +64,7 @@ func (m *Mirror) update() error {
 }
 
 func (m *Mirror) ipfs() error {
-	cmd := exec.Command("ipfs", "add", "--recursive", "--hidden", "--quieter", "--wrap-with-directory", "--chunker=rabin", "--nocopy", "--fscache", "--cid-version=1", m.Path)
+	cmd := exec.Command("ipfs", "add", "--recursive", "--hidden", "--quieter", "--wrap-with-directory", "--chunker=rabin", "--fscache", "--cid-version=1", m.Path)
 
 	// Stream errors to the console
 	cmd.Stderr = os.Stderr
