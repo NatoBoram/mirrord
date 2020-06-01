@@ -31,7 +31,7 @@ func main() {
 
 		err = config.runBeforeScript()
 		if err != nil {
-			log.Fatalln(err.Error())
+			fmt.Println(err.Error())
 		}
 
 		// Create queue
@@ -43,10 +43,9 @@ func main() {
 			close(mirrorchan)
 		}()
 
+		// Mirror asynchronously
 		var wg sync.WaitGroup
 		wg.Add(len(mirrors))
-
-		// Mirror asynchronously
 		for c := 1; c <= runtime.NumCPU(); c++ {
 			go func() {
 				for mirror := range mirrorchan {
@@ -60,7 +59,14 @@ func main() {
 			}()
 		}
 
-		time.Sleep(4 * time.Hour)
+		// Minimum time between cycles
+		var wgSleep sync.WaitGroup
+		wgSleep.Add(1)
+		go func() {
+			time.Sleep(time.Hour)
+			wgSleep.Done()
+		}()
+
 		wg.Wait()
 
 		cmd := exec.Command("ipfs", "repo", "gc", "--stream-errors")
@@ -70,7 +76,9 @@ func main() {
 
 		err = config.runAfterScript()
 		if err != nil {
-			log.Fatalln(err.Error())
+			fmt.Println(err.Error())
 		}
+
+		wgSleep.Wait()
 	}
 }
