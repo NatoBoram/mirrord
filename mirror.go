@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // UnmarshalMirror unmarshals a mirror configuration.
@@ -33,6 +35,12 @@ type Mirror struct {
 	// Path is the path of the mirror.
 	Path string `json:"path"`
 
+	// Snapshots is the path where snapshots are going to be created.
+	Snapshots string `json:"snapshots"`
+
+	// Snapshot is the name of the latest snapshot in the snapshots folder.
+	Snapshot int64 `json:"snapshot"`
+
 	// IPFS is the IPFS hash of the mirror.
 	IPFS string `json:"ipfs"`
 
@@ -53,8 +61,31 @@ func (m *Mirror) update() error {
 	return cmd.Run()
 }
 
+func (m *Mirror) snapshot() error {
+	err := os.MkdirAll(m.Snapshots, osPrivateDirectory)
+	if err != nil {
+		return err
+	}
+
+	timestamp := time.Now().Unix()
+
+	cmd := exec.Command("btrfs", "subvolume", "snapshot", m.Path, m.Snapshots+string(os.PathSeparator)+strconv.FormatInt(timestamp, 10))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	m.Snapshot = timestamp
+	return m.save()
+}
+
 func (m *Mirror) ipfs() error {
-	cmd := exec.Command("ipfs", "add", "--recursive", "--hidden", "--quieter", "--wrap-with-directory", "--chunker=rabin", "--fscache", "--cid-version=1", m.Path)
+	cmd := exec.Command(
+		"ipfs", "add", "--recursive", "--hidden", "--quieter", "--progress", "--chunker=rabin", "--nocopy", "--cid-version=1",
+		m.Snapshots+string(os.PathSeparator)+strconv.FormatInt(m.Snapshot, 10),
+	)
 	cmd.Stderr = os.Stderr
 
 	out, err := cmd.Output()
@@ -65,7 +96,7 @@ func (m *Mirror) ipfs() error {
 	cmd = exec.Command("ipfs", "pin", "rm", m.IPFS)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Run()
+	go cmd.Run()
 
 	m.IPFS = strings.TrimSpace(string(out))
 	return m.save()
@@ -117,12 +148,19 @@ func (m *Mirror) cycle() (err error) {
 		return
 	}
 
+	fmt.Println("Creating a snapshot...")
+	err = m.snapshot()
+	if err != nil {
+		return
+	}
+
 	fmt.Println("Adding to IPFS...")
 	err = m.ipfs()
 	if err != nil {
 		return
 	}
 
+	fmt.Println("Checking the IPNS key...")
 	err = m.key()
 	if err != nil {
 		return
