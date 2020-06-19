@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/logrusorgru/aurora"
 )
 
 // UnmarshalMirror unmarshals a mirror configuration.
@@ -55,6 +57,7 @@ type Mirror struct {
 }
 
 func (m *Mirror) update() error {
+	fmt.Println("Updating...")
 	cmd := exec.Command(m.Update)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -62,6 +65,12 @@ func (m *Mirror) update() error {
 }
 
 func (m *Mirror) snapshot() error {
+	if m.Snapshots == "" {
+		return nil
+	}
+
+	fmt.Println("Creating a snapshot...")
+
 	err := os.MkdirAll(m.Snapshots, osPrivateDirectory)
 	if err != nil {
 		return err
@@ -82,23 +91,41 @@ func (m *Mirror) snapshot() error {
 }
 
 func (m *Mirror) ipfs() error {
-	cmd := exec.Command(
-		"ipfs", "add", "--recursive", "--hidden", "--quieter", "--progress", "--chunker=rabin", "--nocopy", "--cid-version=1",
-		m.Snapshots+string(os.PathSeparator)+strconv.FormatInt(m.Snapshot, 10),
-	)
-	cmd.Stderr = os.Stderr
+	fmt.Println("Adding to IPFS...")
 
+	// Use `--nocopy` only with Btrfs snapshots.
+	var cmd *exec.Cmd
+	if m.Snapshot == 0 {
+		cmd = exec.Command("ipfs", "add", "--recursive", "--hidden", "--quieter", "--progress", "--chunker=rabin", "--cid-version=1", m.Path)
+	} else {
+		cmd = exec.Command(
+			"ipfs", "add", "--recursive", "--hidden", "--quieter", "--progress", "--chunker=rabin", "--nocopy", "--cid-version=1",
+			m.Snapshots+string(os.PathSeparator)+strconv.FormatInt(m.Snapshot, 10),
+		)
+	}
+
+	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()
 	if err != nil {
 		return err
 	}
+	fmt.Println()
 
-	cmd = exec.Command("ipfs", "pin", "rm", m.IPFS)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	go cmd.Run()
+	// Extract hash from output
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	line := lines[len(lines)-1]
+	ipfs := strings.TrimSpace(line)
+	fmt.Println("New hash :", aurora.Cyan(ipfs))
 
-	m.IPFS = strings.TrimSpace(string(out))
+	// Unpin old hash
+	if ipfs != m.IPFS {
+		cmd = exec.Command("ipfs", "pin", "rm", m.IPFS)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		go cmd.Run()
+	}
+
+	m.IPFS = ipfs
 	return m.save()
 }
 
@@ -106,6 +133,8 @@ func (m *Mirror) key() error {
 	if m.Key != "" {
 		return nil
 	}
+
+	fmt.Println("Generating a key...")
 
 	cmd := exec.Command("ipfs", "key", "gen", m.Name)
 	cmd.Stderr = os.Stderr
@@ -120,6 +149,8 @@ func (m *Mirror) key() error {
 }
 
 func (m *Mirror) ipns() error {
+	fmt.Println("Publishing on IPNS...")
+
 	cmd := exec.Command("ipfs", "name", "publish", "--key="+m.Key, "--quieter", m.IPFS)
 	cmd.Stderr = os.Stderr
 
@@ -129,6 +160,7 @@ func (m *Mirror) ipns() error {
 	}
 
 	m.IPNS = strings.TrimSpace(string(out))
+	fmt.Println("Published to IPNS :", aurora.Cyan(m.IPNS))
 	return m.save()
 }
 
@@ -142,31 +174,26 @@ func (m *Mirror) save() error {
 }
 
 func (m *Mirror) cycle() (err error) {
-	fmt.Println("Updating...")
 	err = m.update()
 	if err != nil {
 		return
 	}
 
-	fmt.Println("Creating a snapshot...")
 	err = m.snapshot()
 	if err != nil {
 		return
 	}
 
-	fmt.Println("Adding to IPFS...")
 	err = m.ipfs()
 	if err != nil {
 		return
 	}
 
-	fmt.Println("Checking the IPNS key...")
 	err = m.key()
 	if err != nil {
 		return
 	}
 
-	fmt.Println("Publishing on IPNS...")
 	err = m.ipns()
 	return
 }

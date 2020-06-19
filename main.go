@@ -69,6 +69,7 @@ func main() {
 
 		wg.Wait()
 
+		fmt.Println("Running garbage collection...")
 		cmd := exec.Command("ipfs", "repo", "gc", "--stream-errors")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
