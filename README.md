@@ -50,7 +50,7 @@ Add mirrors to `~/.config/mirrord/mirrors/*.json`. Every file in this directory 
 
 Mirrord has two modes : One using `--nocopy` with Btrfs snapshots and one without both. It's impossible to mix them because of limitations from IPFS.
 
-This is currently being used to create an IPFS mirror of the Ubuntu Archives.
+This is currently being used to create an IPFS mirror of the Ubuntu Archives. [Read more](https://www.reddit.com/r/ipfs/comments/hc9aqd/).
 
 ```list
 deb http://localhost:8080/ipns/QmRzYWabKciZNiRxnyPZGbcY8XWDBkqUwNdjXpsm1q2v7F/ubuntu focal           main restricted universe multiverse # IPNS
