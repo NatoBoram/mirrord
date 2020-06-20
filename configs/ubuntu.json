@@ -1,0 +1,6 @@
+{
+	"name": "ubuntu",
+	"update": "/home/ubuntu/Bash/rsync_ubuntu.sh",
+	"path": "/mnt/Seagate/mirrors/ubuntu",
+	"snapshots": "/mnt/Seagate/snapshots/ubuntu"
+}
