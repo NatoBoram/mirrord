@@ -96,10 +96,10 @@ func (m *Mirror) ipfs() error {
 	// Use `--nocopy` only with Btrfs snapshots.
 	var cmd *exec.Cmd
 	if m.Snapshot == 0 {
-		cmd = exec.Command("ipfs", "add", "--recursive", "--hidden", "--quieter", "--progress", "--chunker=rabin", "--cid-version=1", m.Path)
+		cmd = exec.Command("ipfs", "add", "--recursive", "--hidden", "--quieter", "--progress", "--chunker=buzhash", "--cid-version=1", "--inline", m.Path)
 	} else {
 		cmd = exec.Command(
-			"ipfs", "add", "--recursive", "--hidden", "--quieter", "--progress", "--chunker=rabin", "--nocopy", "--cid-version=1",
+			"ipfs", "add", "--recursive", "--hidden", "--quieter", "--progress", "--chunker=buzhash", "--nocopy", "--cid-version=1", "--inline",
 			m.Snapshots+string(os.PathSeparator)+strconv.FormatInt(m.Snapshot, 10),
 		)
 	}
