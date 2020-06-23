@@ -12,12 +12,13 @@ import (
 
 func main() {
 
-	config, err := readConfig()
-	if err != nil {
-		log.Fatalln(err.Error())
-	}
-
 	for {
+
+		// Reload configurations at each loop
+		config, err := readConfig()
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
 
 		mirrors, err := readMirrors()
 		if err != nil {
