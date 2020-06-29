@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
 	"runtime"
 	"sync"
 	"time"
@@ -69,12 +67,6 @@ func main() {
 		}()
 
 		wg.Wait()
-
-		fmt.Println("Running garbage collection...")
-		cmd := exec.Command("ipfs", "repo", "gc", "--stream-errors")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Run()
 
 		err = config.runAfterScript()
 		if err != nil {
